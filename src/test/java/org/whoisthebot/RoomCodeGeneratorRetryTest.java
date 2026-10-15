@@ -30,7 +30,8 @@ public class RoomCodeGeneratorRetryTest {
     void generatesNewCodeWhenFirstCodeIsTaken() {
         // Arrange
         when(gameRoomRepository.findByRoomCode(anyString()))
-            .thenReturn(Optional.of(new GameRoom("CODE EXISTS")) , Optional.empty());
+            .thenReturn(Optional.of(new GameRoom("CODE EXISTS")))
+            .thenReturn(Optional.empty());
 
         // Act
         roomCodeGenerator.generateUniqueCode();
