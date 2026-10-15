@@ -11,7 +11,7 @@ import jakarta.persistence.ManyToOne;
 @Entity
 public class Player {
 
-    //usernamet som alltid kommer användas till AI:n
+    // usernamet som alltid kommer användas till AI:n
     public static final String BOT_USERNAME = "Imposter";
 
     @Id
