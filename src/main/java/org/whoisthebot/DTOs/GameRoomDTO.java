@@ -16,6 +16,8 @@ public record GameRoomDTO(String roomCode, GameStatus gameStatus, List<PlayerDTO
 
     }
 
+    //Helper metod.
+    // Gör om listan med Player objekt till en lista med PlayerDTO objekt, så att man kan skicka den till frontend
     private static List<PlayerDTO> toPlayerDTOs(List<Player> players) {
 
         List<PlayerDTO> playerDTOs = new ArrayList<>();
