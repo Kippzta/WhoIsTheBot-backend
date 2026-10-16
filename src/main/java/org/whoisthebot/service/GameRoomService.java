@@ -23,7 +23,8 @@ public class GameRoomService {
     @Inject
     RoomCodeGenerator roomCodeGenerator;
 
-    @Transactional
+
+    // Skapar ett nytt rum och en spelare som är host för rummet, returnerar spelaren.
     public Player createGameRoom(String username) {
 
         if (username == null || username.isBlank()) {
