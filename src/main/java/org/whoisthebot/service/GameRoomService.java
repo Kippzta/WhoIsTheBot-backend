@@ -46,6 +46,12 @@ public class GameRoomService {
 
     }
 
+    
+    //////////////////////////////////////////
+    /// **Helpermetoder** ///////////////////
+    /////////////////////////////////////////
+
+
     // Låter en spelare gå med i ett spelrum, returnerar spelaren.
     @Transactional
     public Player joinGameRoom(String username, String roomCode) {
@@ -66,6 +72,9 @@ public class GameRoomService {
         return player;
 
     }
+
+
+  
 
     // Helper metod som validerar att användarnamnet inte är tomt eller reserverat
     private void validateUsername(String username) {
@@ -107,7 +116,8 @@ public class GameRoomService {
         }
     }
 
-    //helpter metod som kontrollerar att användarnamnet inte redan är taget i rummet
+    // helpter metod som kontrollerar att användarnamnet inte redan är taget i
+    // rummet
     private void validateUsernameNotTaken(String username, List<Player> players) {
 
         for (Player player : players) {
@@ -121,8 +131,8 @@ public class GameRoomService {
         }
     }
 
-
-    // helper metod som kontrollerar att spelets status är den som krävs för att just den delen av spelet ska kunna köras
+    // helper metod som kontrollerar att spelets status är den som krävs för att
+    // just den delen av spelet ska kunna köras
     private void validateCorrectGameStatus(GameRoom gameRoom, GameStatus reqGameStatus, String errorMsg) {
 
         if (gameRoom.getGameStatus() != reqGameStatus) {
