@@ -74,21 +74,22 @@ public class GameRoomService {
     }
 
     // kontrollerar att spelare finns och hör till rätt spelrum
-    // bygger DTO:n inuti metoden, eftersom spelarlistan hämtas lat (lazy) och inte går att hämta efteråt
-    // https://www.baeldung.com/hibernate-lazy-eager-loading
-    @Transactional 
-    public GameRoomDTO connectPlayer(String roomCode, UUID playerId) {
+    // bygger DTO:n inuti metoden, eftersom spelarlistan hämtas lat (lazy) och inte
+    // går att hämta efteråt
+    // Källa; https://www.baeldung.com/hibernate-lazy-eager-loading
+    @Transactional
+    public GameRoomDTO validatePlayerAndGetRoom(String roomCode, UUID playerId) {
 
-       Player player = playerRepository.findByIdOptional(playerId)
-       .orElseThrow(() -> new NotFoundException("Ingen spelare med det id:t hittades!"));
+        Player player = playerRepository.findByIdOptional(playerId)
+                .orElseThrow(() -> new NotFoundException("Ingen spelare med det id:t hittades!"));
 
-       if (!roomCode.equalsIgnoreCase(player.getGameRoom().getRoomCode())) {
-           throw new BadRequestException("Spelaren tillhör inte det här spelrummet!");
-       }
+        if (!roomCode.equalsIgnoreCase(player.getGameRoom().getRoomCode())) {
+            throw new BadRequestException("Spelaren tillhör inte det här spelrummet!");
+        }
 
-       GameRoomDTO gameRoomDTO = new GameRoomDTO(player.getGameRoom());
-      
-     return gameRoomDTO;   
+        GameRoomDTO gameRoomDTO = new GameRoomDTO(player.getGameRoom());
+
+        return gameRoomDTO;
 
     }
 
