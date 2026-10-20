@@ -56,15 +56,19 @@ public class GameRoomService {
     @Transactional
     public Player joinGameRoom(String username, String roomCode) {
 
+        // Kontrollerar att användarnamnet inte är tomt eller reserverat
         validateUsername(username);
 
+        // Kontrollerar att rumskoden inte är tom eller null
         validateGameRoomCode(roomCode);
 
         GameRoom gameRoom = gameRoomRepository.findByRoomCode(roomCode.toUpperCase())
                 .orElseThrow(() -> new NotFoundException("Inget spelrum hittades"));
 
+        // Kontrollerar att spelets status är WAITING
         validateCorrectGameStatus(gameRoom, GameStatus.WAITING, "Spelet har redan startat!");
 
+        // Kontrollerar att användarnamnet inte redan är upptaget
         validateUsernameNotTaken(username, gameRoom.getPlayers());
 
         Player player = createPlayerAndAddToGameRoom(username, gameRoom, false);
