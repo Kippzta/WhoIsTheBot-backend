@@ -9,6 +9,7 @@ public record RoomEntryRespDTO(UUID playerId, GameRoomDTO gameRoomDTO) {
 
     public RoomEntryRespDTO(Player player){
 
+       // Plockar ut spelarens id och skapar en GameRoomDTO med information om rummet som spelaren har gått med i
         this(player.getId(), new GameRoomDTO(player.getGameRoom()));
 
     }

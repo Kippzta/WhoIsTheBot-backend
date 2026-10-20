@@ -1,7 +1,9 @@
 package org.whoisthebot.service;
 
 import java.util.List;
+import java.util.UUID;
 
+import org.whoisthebot.DTOs.GameRoomDTO;
 import org.whoisthebot.entity.GameRoom;
 import org.whoisthebot.entity.Player;
 import org.whoisthebot.enums.GameStatus;
@@ -46,25 +48,23 @@ public class GameRoomService {
 
     }
 
-    
-    //////////////////////////////////////////
-    /// **Helpermetoder** ///////////////////
-    /////////////////////////////////////////
-
-
     // Låter en spelare gå med i ett spelrum, returnerar spelaren.
     @Transactional
     public Player joinGameRoom(String username, String roomCode) {
 
+        // Kontrollerar att användarnamnet inte är tomt eller reserverat
         validateUsername(username);
 
+        // Kontrollerar att rumskoden inte är tom eller null
         validateGameRoomCode(roomCode);
 
         GameRoom gameRoom = gameRoomRepository.findByRoomCode(roomCode.toUpperCase())
                 .orElseThrow(() -> new NotFoundException("Inget spelrum hittades"));
 
+        // Kontrollerar att spelets status är WAITING
         validateCorrectGameStatus(gameRoom, GameStatus.WAITING, "Spelet har redan startat!");
 
+        // Kontrollerar att användarnamnet inte redan är upptaget
         validateUsernameNotTaken(username, gameRoom.getPlayers());
 
         Player player = createPlayerAndAddToGameRoom(username, gameRoom, false);
@@ -73,8 +73,28 @@ public class GameRoomService {
 
     }
 
+    // kontrollerar att spelare finns och hör till rätt spelrum
+    // bygger DTO:n inuti metoden, eftersom spelarlistan hämtas lat (lazy) och inte går att hämta efteråt
+    // https://www.baeldung.com/hibernate-lazy-eager-loading
+    @Transactional 
+    public GameRoomDTO connectPlayer(String roomCode, UUID playerId) {
 
-  
+       Player player = playerRepository.findByIdOptional(playerId)
+       .orElseThrow(() -> new NotFoundException("Ingen spelare med det id:t hittades!"));
+
+       if (!roomCode.equalsIgnoreCase(player.getGameRoom().getRoomCode())) {
+           throw new BadRequestException("Spelaren tillhör inte det här spelrummet!");
+       }
+
+       GameRoomDTO gameRoomDTO = new GameRoomDTO(player.getGameRoom());
+      
+     return gameRoomDTO;   
+
+    }
+
+    //////////////////////////////////////////
+    /// **Helpermetoder** ///////////////////
+    /////////////////////////////////////////
 
     // Helper metod som validerar att användarnamnet inte är tomt eller reserverat
     private void validateUsername(String username) {
