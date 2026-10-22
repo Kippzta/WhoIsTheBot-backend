@@ -4,11 +4,14 @@ import java.util.UUID;
 
 import org.whoisthebot.DTOs.GameRoomDTO;
 import org.whoisthebot.DTOs.WebSocketMessageDTO;
+import org.whoisthebot.enums.GameStatus;
 import org.whoisthebot.enums.WebSocketMessageType;
 import org.whoisthebot.service.GameRoomService;
 
+import io.quarkus.logging.Log;
 import io.quarkus.websockets.next.OnClose;
 import io.quarkus.websockets.next.OnOpen;
+import io.quarkus.websockets.next.OnTextMessage;
 import io.quarkus.websockets.next.WebSocket;
 import io.quarkus.websockets.next.WebSocketConnection;
 import jakarta.inject.Inject;
@@ -22,48 +25,94 @@ public class GameRoomSocket {
     @Inject
     WebSocketConnection connection;
 
+    // Körs när en spelare ansluter till websocketen
     @OnOpen
     public void onOpen() {
 
         // Hämtar path parametrar från URL:en och sätter dem till variabler
         String roomCode = connection.pathParam("roomCode");
-        String playerIdText = connection.pathParam("playerId");
 
         try {
-            // Källa:
-            // https://stackoverflow.com/questions/25637152/easiest-way-in-java-to-turn-string-into-uuid
-            UUID playerId = UUID.fromString(playerIdText);
+
+            UUID playerId = getPlayerId();
 
             // Validerar spelarens id och rumskoden så rätt spelare finns och tillhör rätt
             // rum, returnerar rummet som en DTO för att
             // kunna skicka det till frontend.
             GameRoomDTO gameRoomDTO = gameRoomService.validatePlayerAndGetRoom(roomCode, playerId);
 
-            System.out.println(playerId + " " + "Har anslutit till spelrum: " + roomCode);
+            Log.info(playerId + " " + "Har anslutit till spelrum: " + roomCode);
 
             // Skapar ett meddelande som skickas till alla spelare i rummet för att
             // uppdatera spelarlistan i frontend.
             WebSocketMessageDTO<GameRoomDTO> message = new WebSocketMessageDTO<>(WebSocketMessageType.ROOM_UPDATED,
                     gameRoomDTO);
 
-            // Skickar meddelandet till alla anslutningar där rumskoden är samma som den här
-            // spelarens,
-            // alltså bara till spelarna i samma rum.
-            connection.broadcast().filter(c -> c.pathParam("roomCode")
-                    .equalsIgnoreCase(roomCode))
-                    .sendTextAndAwait(message);
-        } 
-          //Fångar om något går fel och stänger anslutningen
+            sendToRoom(roomCode, message);
+        }
+        // Fångar om något går fel och stänger anslutningen
         catch (Exception e) {
 
-            System.out.println("Anlutning misslyckad: " + e.getMessage());
+            Log.info("Anlutning misslyckad: " + e.getMessage());
             connection.closeAndAwait();
         }
 
     }
 
-    public @OnClose void onClose() {
-        System.out.println("Någon har lämnat rummet!");
+    @OnClose
+    public void onClose() {
+        Log.info("Någon har lämnat rummet!");
+    }
+
+   // Körs varje gång ett meddelande tas emot från frontend, type avgör vad som ska göras t.ex. starta spelet.
+   // data är object för vi kommer ta emot olika typer som inte är förbestämda
+    @OnTextMessage
+    public void onMessage(WebSocketMessageDTO<Object> webSocketMessageDTO) {
+
+        String roomCode = connection.pathParam("roomCode");
+
+        try {
+            UUID playerId = getPlayerId();
+
+            if (webSocketMessageDTO.type() == WebSocketMessageType.START_GAME) {
+
+                GameStatus gameStatus = gameRoomService.startGame(roomCode, playerId);
+
+                WebSocketMessageDTO<GameStatus> message = new WebSocketMessageDTO<>(
+                        WebSocketMessageType.GAME_STATUS_CHANGED, gameStatus);
+
+                sendToRoom(roomCode, message);
+
+            }
+
+            // Anslutningen stängs inte här om något går fel utan spelaren ska frf vara kvar
+        } catch (Exception e) {
+
+            Log.info("Spelet gick inte att starta: " + e.getMessage());
+
+        }
+
+    }
+
+    private UUID getPlayerId() {
+
+        String playerIdText = connection.pathParam("playerId");
+
+        // Källa:
+        // https://stackoverflow.com/questions/25637152/easiest-way-in-java-to-turn-string-into-uuid
+        UUID playerId = UUID.fromString(playerIdText);
+
+        return playerId;
+
+    }
+
+    // Skickar meddelandet till alla anslutningar där rumskoden är samma som den här
+    // spelarens,
+    // alltså bara till spelarna i samma rum.
+    private <T> void sendToRoom(String roomCode, WebSocketMessageDTO<T> message) {
+        connection.broadcast().filter(c -> c.pathParam("roomCode")
+                .equalsIgnoreCase(roomCode))
+                .sendTextAndAwait(message);
     }
 
 }
