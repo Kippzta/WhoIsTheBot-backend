@@ -20,6 +20,8 @@ import jakarta.ws.rs.NotFoundException;
 @ApplicationScoped
 public class GameRoomService {
 
+    private static final int MIN_REQ_PLAYERS = 2;
+
     @Inject
     GameRoomRepository gameRoomRepository;
 
@@ -70,8 +72,35 @@ public class GameRoomService {
         Player player = createPlayerAndAddToGameRoom(username, gameRoom, false);
 
         return player;
-
     }
+
+    // Låter en spelare starta spelet, returnerar den nya statusen på spelet.
+    @Transactional
+    public GameStatus startGame(String roomCode, UUID playerId) {
+
+        Player player = getPlayerFromCorrectRoom(roomCode, playerId);
+
+        GameRoom gameRoom = player.getGameRoom();
+
+        // Kontrollerar att spelaren är host för rummet för bara den spelaren kan starta spelet
+        if (!player.isHost()) {
+            throw new BadRequestException("Spelare måste vara värd för att starta spelet!");
+        }
+
+        validateCorrectGameStatus(gameRoom, GameStatus.WAITING, "Spelet har redan startat!");
+
+        // Kontrollerar att det finns minst två spelare i rummet innan spelet kan starta
+        if (gameRoom.getPlayers().size() < MIN_REQ_PLAYERS) {
+            throw new BadRequestException("Minst två spelare behövs för att starta spelet!");
+        }
+
+        gameRoom.setGameStatus(GameStatus.CHATTING);
+
+        gameRoom.setCurrentRound(1);
+        
+        return gameRoom.getGameStatus();
+
+        }
 
     // kontrollerar att spelare finns och hör till rätt spelrum
     // bygger DTO:n inuti metoden, eftersom spelarlistan hämtas lat (lazy) och inte
@@ -80,12 +109,7 @@ public class GameRoomService {
     @Transactional
     public GameRoomDTO validatePlayerAndGetRoom(String roomCode, UUID playerId) {
 
-        Player player = playerRepository.findByIdOptional(playerId)
-                .orElseThrow(() -> new NotFoundException("Ingen spelare med det id:t hittades!"));
-
-        if (!roomCode.equalsIgnoreCase(player.getGameRoom().getRoomCode())) {
-            throw new BadRequestException("Spelaren tillhör inte det här spelrummet!");
-        }
+        Player player = getPlayerFromCorrectRoom(roomCode, playerId);
 
         GameRoomDTO gameRoomDTO = new GameRoomDTO(player.getGameRoom());
 
@@ -161,6 +185,19 @@ public class GameRoomService {
             throw new BadRequestException(errorMsg);
 
         }
+
+    }
+
+    private Player getPlayerFromCorrectRoom(String roomCode, UUID playerId) {
+
+        Player player = playerRepository.findByIdOptional(playerId)
+                .orElseThrow(() -> new NotFoundException("Ingen spelare med det id:t hittades!"));
+
+        if (!roomCode.equalsIgnoreCase(player.getGameRoom().getRoomCode())) {
+            throw new BadRequestException("Spelaren tillhör inte det här spelrummet!");
+        }
+
+        return player;
 
     }
 

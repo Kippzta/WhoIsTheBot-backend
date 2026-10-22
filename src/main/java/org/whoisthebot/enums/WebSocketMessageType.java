@@ -2,6 +2,8 @@ package org.whoisthebot.enums;
 
 public enum WebSocketMessageType {
 
-    ROOM_UPDATED
+    ROOM_UPDATED,
+    START_GAME,
+    GAME_STATUS_CHANGED
     
 }
