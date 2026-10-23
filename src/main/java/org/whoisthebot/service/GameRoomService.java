@@ -7,6 +7,7 @@ import org.whoisthebot.DTOs.GameRoomDTO;
 import org.whoisthebot.entity.GameRoom;
 import org.whoisthebot.entity.Player;
 import org.whoisthebot.enums.GameStatus;
+import org.whoisthebot.generator.AliasGenerator;
 import org.whoisthebot.generator.RoomCodeGenerator;
 import org.whoisthebot.repository.GameRoomRepository;
 import org.whoisthebot.repository.PlayerRepository;
@@ -30,6 +31,9 @@ public class GameRoomService {
 
     @Inject
     RoomCodeGenerator roomCodeGenerator;
+
+    @Inject 
+    AliasGenerator aliasGenerator;
 
     // Skapar ett nytt rum och en spelare som är host för rummet, returnerar
     // spelaren.
@@ -78,12 +82,12 @@ public class GameRoomService {
     @Transactional
     public GameStatus startGame(String roomCode, UUID playerId) {
 
-        Player player = getPlayerFromCorrectRoom(roomCode, playerId);
+        Player hostPlayer = getPlayerFromCorrectRoom(roomCode, playerId);
 
-        GameRoom gameRoom = player.getGameRoom();
+        GameRoom gameRoom = hostPlayer.getGameRoom();
 
         // Kontrollerar att spelaren är host för rummet för bara den spelaren kan starta spelet
-        if (!player.isHost()) {
+        if (!hostPlayer.isHost()) {
             throw new BadRequestException("Spelare måste vara värd för att starta spelet!");
         }
 
@@ -92,6 +96,26 @@ public class GameRoomService {
         // Kontrollerar att det finns minst två spelare i rummet innan spelet kan starta
         if (gameRoom.getPlayers().size() < MIN_REQ_PLAYERS) {
             throw new BadRequestException("Minst två spelare behövs för att starta spelet!");
+        }
+
+        //Lägger till botten efter vi kontrollerat spelarlistan för annars skulle den räknas in i kontrollen för att kunna starta spelet.
+        Player bot = createPlayerAndAddToGameRoom(Player.BOT_USERNAME, gameRoom, false);
+
+        bot.setBot(true);
+
+        // Genererar alias för alla spelare i rummet, inklusive botten
+        List<String> aliases = aliasGenerator.generateAliases(gameRoom.getPlayers().size());
+
+        List<Player> players = gameRoom.getPlayers();
+
+        // Sätter alias för alla spelare i rummet, inklusive botten
+        for (int i = 0; i < players.size(); i++) {
+
+           Player currentPlayer = players.get(i);
+
+           String alias = aliases.get(i);
+
+           currentPlayer.setAlias(alias);
         }
 
         gameRoom.setGameStatus(GameStatus.CHATTING);
