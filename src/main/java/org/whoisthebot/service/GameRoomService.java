@@ -32,7 +32,7 @@ public class GameRoomService {
     @Inject
     RoomCodeGenerator roomCodeGenerator;
 
-    @Inject 
+    @Inject
     AliasGenerator aliasGenerator;
 
     // Skapar ett nytt rum och en spelare som är host för rummet, returnerar
@@ -78,7 +78,7 @@ public class GameRoomService {
         return player;
     }
 
-    // Låter en spelare starta spelet, returnerar den nya statusen på spelet.
+    // Låter hosten starta spelet, returnerar den nya statusen på spelet.
     @Transactional
     public GameStatus startGame(String roomCode, UUID playerId) {
 
@@ -86,7 +86,8 @@ public class GameRoomService {
 
         GameRoom gameRoom = hostPlayer.getGameRoom();
 
-        // Kontrollerar att spelaren är host för rummet för bara den spelaren kan starta spelet
+        // Kontrollerar att spelaren är host för rummet för bara den spelaren kan starta
+        // spelet
         if (!hostPlayer.isHost()) {
             throw new BadRequestException("Spelare måste vara värd för att starta spelet!");
         }
@@ -98,7 +99,8 @@ public class GameRoomService {
             throw new BadRequestException("Minst två spelare behövs för att starta spelet!");
         }
 
-        //Lägger till botten efter vi kontrollerat spelarlistan för annars skulle den räknas in i kontrollen för att kunna starta spelet.
+        // Lägger till botten efter vi kontrollerat spelarlistan för annars skulle den
+        // räknas in i kontrollen för att kunna starta spelet.
         Player bot = createPlayerAndAddToGameRoom(Player.BOT_USERNAME, gameRoom, false);
 
         bot.setBot(true);
@@ -111,20 +113,20 @@ public class GameRoomService {
         // Sätter alias för alla spelare i rummet, inklusive botten
         for (int i = 0; i < players.size(); i++) {
 
-           Player currentPlayer = players.get(i);
+            Player currentPlayer = players.get(i);
 
-           String alias = aliases.get(i);
+            String alias = aliases.get(i);
 
-           currentPlayer.setAlias(alias);
+            currentPlayer.setAlias(alias);
         }
 
         gameRoom.setGameStatus(GameStatus.CHATTING);
 
         gameRoom.setCurrentRound(1);
-        
+
         return gameRoom.getGameStatus();
 
-        }
+    }
 
     // kontrollerar att spelare finns och hör till rätt spelrum
     // bygger DTO:n inuti metoden, eftersom spelarlistan hämtas lat (lazy) och inte
