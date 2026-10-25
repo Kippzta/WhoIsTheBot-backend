@@ -34,7 +34,7 @@ public class GameRoomSocket {
 
         try {
 
-            UUID playerId = getPlayerId();
+            UUID playerId = getPlayerId(connection);
 
             // Validerar spelarens id och rumskoden så rätt spelare finns och tillhör rätt
             // rum, returnerar rummet som en DTO för att
@@ -64,15 +64,16 @@ public class GameRoomSocket {
         Log.info("Någon har lämnat rummet!");
     }
 
-   // Körs varje gång ett meddelande tas emot från frontend, type avgör vad som ska göras t.ex. starta spelet.
-   // data är object för vi kommer ta emot olika typer som inte är förbestämda
+    // Körs varje gång ett meddelande tas emot från frontend, type avgör vad som ska
+    // göras t.ex. starta spelet.
+    // data är object för vi kommer ta emot olika typer som inte är förbestämda
     @OnTextMessage
     public void onMessage(WebSocketMessageDTO<Object> webSocketMessageDTO) {
 
         String roomCode = connection.pathParam("roomCode");
 
         try {
-            UUID playerId = getPlayerId();
+            UUID playerId = getPlayerId(connection);
 
             if (webSocketMessageDTO.type() == WebSocketMessageType.START_GAME) {
 
@@ -80,6 +81,8 @@ public class GameRoomSocket {
 
                 WebSocketMessageDTO<GameStatus> message = new WebSocketMessageDTO<>(
                         WebSocketMessageType.GAME_STATUS_CHANGED, gameStatus);
+
+                sendAliasToEachPlayer(roomCode);
 
                 sendToRoom(roomCode, message);
 
@@ -94,9 +97,9 @@ public class GameRoomSocket {
 
     }
 
-    private UUID getPlayerId() {
+    private UUID getPlayerId(WebSocketConnection playerConnection) {
 
-        String playerIdText = connection.pathParam("playerId");
+        String playerIdText = playerConnection.pathParam("playerId");
 
         // Källa:
         // https://stackoverflow.com/questions/25637152/easiest-way-in-java-to-turn-string-into-uuid
@@ -113,6 +116,36 @@ public class GameRoomSocket {
         connection.broadcast().filter(c -> c.pathParam("roomCode")
                 .equalsIgnoreCase(roomCode))
                 .sendTextAndAwait(message);
+    }
+
+    // Skickar ett alias till varje spelare i rummet på sin egen anslutning.
+    // inte broadcast, eftersom alla ska få olika alias och ingen ska se någon
+    // annans.
+    private void sendAliasToEachPlayer(String roomCode) {
+
+        for (WebSocketConnection playerConnection : connection.getOpenConnections()) {
+
+            if (!playerConnection.pathParam("roomCode").equalsIgnoreCase(roomCode)) {
+                continue;
+            }
+
+            try {
+
+                String alias = gameRoomService.getAlias(getPlayerId(playerConnection));
+
+                WebSocketMessageDTO<String> message = new WebSocketMessageDTO<>(WebSocketMessageType.ALIAS_ASSIGNED,
+                        alias);
+
+                playerConnection.sendTextAndAwait(message);
+
+            } catch (Exception e) {
+
+                Log.info("Kunde inte skicka alias: " + e.getMessage());
+
+            }
+
+        }
+
     }
 
 }
