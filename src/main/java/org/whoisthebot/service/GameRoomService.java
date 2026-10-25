@@ -142,7 +142,7 @@ public class GameRoomService {
         return gameRoomDTO;
     }
 
-    // Transactional för att kunna hämta aliaset från databasen, eftersom det är lazy loaded
+    
     @Transactional 
     public String getAlias(UUID playerId) {
 
