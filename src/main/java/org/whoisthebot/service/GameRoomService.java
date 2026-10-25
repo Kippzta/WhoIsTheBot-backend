@@ -140,7 +140,16 @@ public class GameRoomService {
         GameRoomDTO gameRoomDTO = new GameRoomDTO(player.getGameRoom());
 
         return gameRoomDTO;
+    }
 
+    
+    @Transactional 
+    public String getAlias(UUID playerId) {
+
+        Player player = playerRepository.findByIdOptional(playerId)
+                .orElseThrow(() -> new NotFoundException("Hittade ingen spelare med detta id"));
+
+               return player.getAlias();
     }
 
     //////////////////////////////////////////
