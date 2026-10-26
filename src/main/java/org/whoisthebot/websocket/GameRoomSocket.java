@@ -2,10 +2,12 @@ package org.whoisthebot.websocket;
 
 import java.util.UUID;
 
+import org.whoisthebot.DTOs.ChatMessageRespDTO;
 import org.whoisthebot.DTOs.GameRoomDTO;
 import org.whoisthebot.DTOs.WebSocketMessageDTO;
 import org.whoisthebot.enums.GameStatus;
 import org.whoisthebot.enums.WebSocketMessageType;
+import org.whoisthebot.service.ChatService;
 import org.whoisthebot.service.GameRoomService;
 
 import io.quarkus.logging.Log;
@@ -24,6 +26,9 @@ public class GameRoomSocket {
 
     @Inject
     WebSocketConnection connection;
+
+    @Inject
+    ChatService chatService;
 
     // Körs när en spelare ansluter till websocketen
     @OnOpen
@@ -75,23 +80,38 @@ public class GameRoomSocket {
         try {
             UUID playerId = getPlayerId(connection);
 
-            if (webSocketMessageDTO.type() == WebSocketMessageType.START_GAME) {
+            switch (webSocketMessageDTO.type()) {
+                case START_GAME:
 
-                GameStatus gameStatus = gameRoomService.startGame(roomCode, playerId);
+                    GameStatus gameStatus = gameRoomService.startGame(roomCode, playerId);
 
-                WebSocketMessageDTO<GameStatus> message = new WebSocketMessageDTO<>(
-                        WebSocketMessageType.GAME_STATUS_CHANGED, gameStatus);
+                    WebSocketMessageDTO<GameStatus> statusMessage = new WebSocketMessageDTO<>(
+                            WebSocketMessageType.GAME_STATUS_CHANGED, gameStatus);
 
-                sendAliasToEachPlayer(roomCode);
+                    sendAliasToEachPlayer(roomCode);
 
-                sendToRoom(roomCode, message);
+                    sendToRoom(roomCode, statusMessage);
+                    break;
 
+                case CHAT_MESSAGE:
+
+                    String text = (String) webSocketMessageDTO.data();
+
+                    ChatMessageRespDTO chatMessageRespDTO = chatService.sendChatMessage(roomCode, playerId, text);
+
+                    WebSocketMessageDTO<ChatMessageRespDTO> chatMessage = new WebSocketMessageDTO<>(
+                            WebSocketMessageType.CHAT_MESSAGE, chatMessageRespDTO);
+
+                            sendToRoom(roomCode, chatMessage);
+
+                    break;
+                default:
+                    break;
             }
 
-            // Anslutningen stängs inte här om något går fel utan spelaren ska frf vara kvar
         } catch (Exception e) {
-
-            Log.info("Spelet gick inte att starta: " + e.getMessage());
+            // Anslutningen stängs inte här om något går fel utan spelaren ska frf vara kvar
+            Log.info("Meddelandet kunde inte hanteras: " + e.getMessage());
 
         }
 

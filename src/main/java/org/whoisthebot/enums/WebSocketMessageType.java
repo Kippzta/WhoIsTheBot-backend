@@ -5,6 +5,7 @@ public enum WebSocketMessageType {
     ROOM_UPDATED,
     START_GAME,
     GAME_STATUS_CHANGED,
-    ALIAS_ASSIGNED
+    ALIAS_ASSIGNED,
+    CHAT_MESSAGE
     
 }

@@ -211,9 +211,13 @@ public class GameRoomService {
         }
     }
 
+    ///////////////////////////////////
+    /// ANVÄNDS ÄVEN I CHATSERVICE ////
+    /// ///////////////////////////////
+
     // helper metod som kontrollerar att spelets status är den som krävs för att
     // just den delen av spelet ska kunna köras
-    private void validateCorrectGameStatus(GameRoom gameRoom, GameStatus reqGameStatus, String errorMsg) {
+    public void validateCorrectGameStatus(GameRoom gameRoom, GameStatus reqGameStatus, String errorMsg) {
 
         if (gameRoom.getGameStatus() != reqGameStatus) {
 
@@ -223,7 +227,7 @@ public class GameRoomService {
 
     }
 
-    private Player getPlayerFromCorrectRoom(String roomCode, UUID playerId) {
+    public Player getPlayerFromCorrectRoom(String roomCode, UUID playerId) {
 
         Player player = playerRepository.findByIdOptional(playerId)
                 .orElseThrow(() -> new NotFoundException("Ingen spelare med det id:t hittades!"));
