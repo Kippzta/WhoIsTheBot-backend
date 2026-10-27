@@ -1,16 +1,19 @@
 package org.whoisthebot.service;
 
 import java.util.List;
+import java.util.Random;
 import java.util.UUID;
 
 import org.whoisthebot.DTOs.GameRoomDTO;
 import org.whoisthebot.entity.GameRoom;
 import org.whoisthebot.entity.Player;
+import org.whoisthebot.entity.Question;
 import org.whoisthebot.enums.GameStatus;
 import org.whoisthebot.generator.AliasGenerator;
 import org.whoisthebot.generator.RoomCodeGenerator;
 import org.whoisthebot.repository.GameRoomRepository;
 import org.whoisthebot.repository.PlayerRepository;
+import org.whoisthebot.repository.QuestionRepository;
 
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
@@ -23,6 +26,8 @@ public class GameRoomService {
 
     private static final int MIN_REQ_PLAYERS = 2;
 
+    private final Random random = new Random();
+
     @Inject
     GameRoomRepository gameRoomRepository;
 
@@ -34,6 +39,9 @@ public class GameRoomService {
 
     @Inject
     AliasGenerator aliasGenerator;
+
+    @Inject
+    QuestionRepository questionRepository;
 
     // Skapar ett nytt rum och en spelare som är host för rummet, returnerar
     // spelaren.
@@ -120,6 +128,8 @@ public class GameRoomService {
             currentPlayer.setAlias(alias);
         }
 
+        gameRoom.setQuestion(chooseRandomQuestion());
+
         gameRoom.setGameStatus(GameStatus.CHATTING);
 
         gameRoom.setCurrentRound(1);
@@ -142,14 +152,25 @@ public class GameRoomService {
         return gameRoomDTO;
     }
 
-    
-    @Transactional 
+    @Transactional
     public String getAlias(UUID playerId) {
 
         Player player = playerRepository.findByIdOptional(playerId)
                 .orElseThrow(() -> new NotFoundException("Hittade ingen spelare med detta id"));
 
-               return player.getAlias();
+        return player.getAlias();
+    }
+
+    @Transactional 
+    public String getQuestionText(String roomCode) {
+
+        GameRoom gameRoom = gameRoomRepository.findByRoomCode(roomCode.toUpperCase())
+        .orElseThrow(() -> new NotFoundException("Inget spelrum hittades"));
+
+        String questionText = gameRoom.getQuestion().getText();
+
+        return questionText;
+
     }
 
     //////////////////////////////////////////
@@ -209,6 +230,21 @@ public class GameRoomService {
             }
 
         }
+    }
+
+    // Hämtar alla frågor från databasen och returnerar en slumpmässig fråga 
+    private Question chooseRandomQuestion() {
+
+        List<Question> allQuestions = questionRepository.listAll();
+
+        if (allQuestions.isEmpty()) {
+            throw new NotFoundException("Inga frågor hittades");
+        }
+
+        int randQuestion = random.nextInt(allQuestions.size());
+
+        return allQuestions.get(randQuestion);
+
     }
 
     ///////////////////////////////////
