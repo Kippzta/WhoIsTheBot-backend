@@ -11,7 +11,7 @@ import jakarta.persistence.ManyToOne;
 @Entity 
 public class ChatMessage {
 
-    public static final int MAX_TEXT_LENGTH = 150;
+    public static final int MAX_TEXT_LENGTH = 100;
 
     @Id 
     @GeneratedValue 

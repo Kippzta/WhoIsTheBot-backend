@@ -14,41 +14,42 @@ import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
 import jakarta.ws.rs.BadRequestException;
 
-@ApplicationScoped 
+@ApplicationScoped
 public class ChatService {
-    
-    @Inject 
+
+    @Inject
     GameRoomService gameRoomService;
 
-    @Inject 
+    @Inject
     ChatMessageRepository chatMessageRepository;
 
-    @Transactional 
+    @Transactional
     public ChatMessageRespDTO sendChatMessage(String roomCode, UUID playerId, String text) {
 
         Player player = gameRoomService.getPlayerFromCorrectRoom(roomCode, playerId);
 
-       GameRoom gameRoom = player.getGameRoom();
+        GameRoom gameRoom = player.getGameRoom();
 
-        gameRoomService.validateCorrectGameStatus(gameRoom, GameStatus.CHATTING , "Chatten är inte öppen ännu");
+        gameRoomService.validateCorrectGameStatus(gameRoom, GameStatus.CHATTING, "Chatten är inte öppen ännu");
 
         if (text == null || text.isBlank()) {
-             throw new BadRequestException("Du måste skriva något innan du skickar");
+            throw new BadRequestException("Du måste skriva något innan du skickar");
         }
 
         String trimmedText = text.trim();
 
         if (trimmedText.length() > ChatMessage.MAX_TEXT_LENGTH) {
-            throw new BadRequestException("Du behöver inte skriva en novell. (MAX " + ChatMessage.MAX_TEXT_LENGTH + " tecken)");
+            throw new BadRequestException(
+                    "Du behöver inte skriva en novell. (MAX " + ChatMessage.MAX_TEXT_LENGTH + " tecken)");
         }
 
         ChatMessage chatMessage = new ChatMessage(trimmedText, player, gameRoom);
-        
+
         chatMessageRepository.persist(chatMessage);
 
         ChatMessageRespDTO chatMessageRespDTO = new ChatMessageRespDTO(chatMessage);
 
-        return chatMessageRespDTO; 
+        return chatMessageRespDTO;
     }
 
 }

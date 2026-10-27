@@ -1,5 +1,6 @@
 package org.whoisthebot.websocket;
 
+import java.util.Optional;
 import java.util.UUID;
 
 import org.whoisthebot.DTOs.ChatMessageRespDTO;
@@ -7,6 +8,7 @@ import org.whoisthebot.DTOs.GameRoomDTO;
 import org.whoisthebot.DTOs.WebSocketMessageDTO;
 import org.whoisthebot.enums.GameStatus;
 import org.whoisthebot.enums.WebSocketMessageType;
+import org.whoisthebot.service.BotService;
 import org.whoisthebot.service.ChatService;
 import org.whoisthebot.service.GameRoomService;
 
@@ -29,6 +31,9 @@ public class GameRoomSocket {
 
     @Inject
     ChatService chatService;
+
+    @Inject
+    BotService botService;
 
     // Körs när en spelare ansluter till websocketen
     @OnOpen
@@ -110,6 +115,16 @@ public class GameRoomSocket {
                             WebSocketMessageType.CHAT_MESSAGE, chatMessageRespDTO);
 
                     sendToRoom(roomCode, chatMessage);
+
+                    Optional<ChatMessageRespDTO> botReply = botService.generateBotReply(roomCode);
+
+                    if (botReply.isPresent()) {
+                        WebSocketMessageDTO<ChatMessageRespDTO> botMessage = new WebSocketMessageDTO<>(
+                                WebSocketMessageType.CHAT_MESSAGE, botReply.get());
+
+                        sendToRoom(roomCode, botMessage);
+
+                    }
 
                     break;
 
