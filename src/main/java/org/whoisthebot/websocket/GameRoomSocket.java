@@ -85,10 +85,17 @@ public class GameRoomSocket {
 
                     GameStatus gameStatus = gameRoomService.startGame(roomCode, playerId);
 
+                    String questionText = gameRoomService.getQuestionText(roomCode);
+
+                    WebSocketMessageDTO<String> questionMessage = new WebSocketMessageDTO<>(
+                            WebSocketMessageType.QUESTION_ASSIGNED, questionText);
+
                     WebSocketMessageDTO<GameStatus> statusMessage = new WebSocketMessageDTO<>(
                             WebSocketMessageType.GAME_STATUS_CHANGED, gameStatus);
 
                     sendAliasToEachPlayer(roomCode);
+
+                    sendToRoom(roomCode, questionMessage);
 
                     sendToRoom(roomCode, statusMessage);
                     break;
@@ -102,9 +109,10 @@ public class GameRoomSocket {
                     WebSocketMessageDTO<ChatMessageRespDTO> chatMessage = new WebSocketMessageDTO<>(
                             WebSocketMessageType.CHAT_MESSAGE, chatMessageRespDTO);
 
-                            sendToRoom(roomCode, chatMessage);
+                    sendToRoom(roomCode, chatMessage);
 
                     break;
+
                 default:
                     break;
             }

@@ -10,6 +10,7 @@ import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.Id;
+import jakarta.persistence.ManyToOne;
 import jakarta.persistence.OneToMany;
 
 @Entity
@@ -35,6 +36,17 @@ public class GameRoom {
     // Koppling så man kan komma åt Player objekten
     @OneToMany(mappedBy = "gameRoom")
     private List<Player> players = new ArrayList<>();
+
+    @ManyToOne 
+    private Question question;
+    
+    public Question getQuestion() {
+        return question;
+    }
+
+    public void setQuestion(Question question) {
+        this.question = question;
+    }
 
     public GameRoom(String roomCode) {
         this.roomCode = roomCode;
