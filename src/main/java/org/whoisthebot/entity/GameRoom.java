@@ -1,5 +1,6 @@
 package org.whoisthebot.entity;
 
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -39,7 +40,17 @@ public class GameRoom {
 
     @ManyToOne 
     private Question question;
+
+    private Instant chatEndsAt;
     
+    public Instant getChatEndsAt() {
+        return chatEndsAt;
+    }
+
+    public void setChatEndsAt(Instant chatEndsAt) {
+        this.chatEndsAt = chatEndsAt;
+    }
+
     public Question getQuestion() {
         return question;
     }

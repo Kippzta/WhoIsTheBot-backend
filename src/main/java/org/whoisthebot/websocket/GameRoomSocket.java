@@ -92,15 +92,22 @@ public class GameRoomSocket {
 
                     String questionText = gameRoomService.getQuestionText(roomCode);
 
+                    Long timeleft = gameRoomService.getChatRoundSecondsLeft(roomCode);
+
                     WebSocketMessageDTO<String> questionMessage = new WebSocketMessageDTO<>(
                             WebSocketMessageType.QUESTION_ASSIGNED, questionText);
 
                     WebSocketMessageDTO<GameStatus> statusMessage = new WebSocketMessageDTO<>(
                             WebSocketMessageType.GAME_STATUS_CHANGED, gameStatus);
 
+                    WebSocketMessageDTO<Long> timeMessage = new WebSocketMessageDTO<>(
+                            WebSocketMessageType.TIMER_STARTED, timeleft);
+
                     sendAliasToEachPlayer(roomCode);
 
                     sendToRoom(roomCode, questionMessage);
+
+                    sendToRoom(roomCode, timeMessage);
 
                     sendToRoom(roomCode, statusMessage);
                     break;

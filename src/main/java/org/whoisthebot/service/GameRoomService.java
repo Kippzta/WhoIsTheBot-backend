@@ -1,5 +1,7 @@
 package org.whoisthebot.service;
 
+import java.time.Duration;
+import java.time.Instant;
 import java.util.List;
 import java.util.Random;
 import java.util.UUID;
@@ -134,6 +136,8 @@ public class GameRoomService {
 
         gameRoom.setCurrentRound(1);
 
+        gameRoom.setChatEndsAt(Instant.now().plusSeconds(gameRoom.getRoundDuration()));
+
         return gameRoom.getGameStatus();
 
     }
@@ -161,16 +165,33 @@ public class GameRoomService {
         return player.getAlias();
     }
 
-    @Transactional 
+    @Transactional
     public String getQuestionText(String roomCode) {
 
         GameRoom gameRoom = gameRoomRepository.findByRoomCode(roomCode.toUpperCase())
-        .orElseThrow(() -> new NotFoundException("Inget spelrum hittades"));
+                .orElseThrow(() -> new NotFoundException("Inget spelrum hittades"));
 
         String questionText = gameRoom.getQuestion().getText();
 
         return questionText;
+    }
 
+    @Transactional
+    public long getChatRoundSecondsLeft(String roomCode) {
+
+        GameRoom gameRoom = gameRoomRepository.findByRoomCode(roomCode.toUpperCase())
+                .orElseThrow(() -> new NotFoundException("Inget spelrum hittades"));
+
+        // Om spelet inte har startat finns ingen sluttid, och då finns ingen tid kvar
+        if (gameRoom.getChatEndsAt() == null) {
+            return 0;
+        }
+
+        long secondsLeft = Duration.between(Instant.now(), gameRoom.getChatEndsAt()).getSeconds();
+
+        // Om tiden redan har gått blir det negativt, men en nedräkning ska aldrig visa
+        // minus
+        return Math.max(0, secondsLeft);
     }
 
     //////////////////////////////////////////
@@ -232,7 +253,7 @@ public class GameRoomService {
         }
     }
 
-    // Hämtar alla frågor från databasen och returnerar en slumpmässig fråga 
+    // Hämtar alla frågor från databasen och returnerar en slumpmässig fråga
     private Question chooseRandomQuestion() {
 
         List<Question> allQuestions = questionRepository.listAll();
