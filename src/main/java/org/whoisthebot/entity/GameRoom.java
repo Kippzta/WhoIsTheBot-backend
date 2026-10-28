@@ -1,5 +1,6 @@
 package org.whoisthebot.entity;
 
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -24,7 +25,7 @@ public class GameRoom {
     private String roomCode;
 
     // Värdet kommer räknas i sekunder
-    private int roundDuration = 90;
+    private int roundDuration = 20;
 
     // Blir 1 när spelet startar och ökar vid en lika röstning
     private int currentRound = 0;
@@ -39,7 +40,17 @@ public class GameRoom {
 
     @ManyToOne 
     private Question question;
+
+    private Instant chatEndsAt;
     
+    public Instant getChatEndsAt() {
+        return chatEndsAt;
+    }
+
+    public void setChatEndsAt(Instant chatEndsAt) {
+        this.chatEndsAt = chatEndsAt;
+    }
+
     public Question getQuestion() {
         return question;
     }

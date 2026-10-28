@@ -1,6 +1,12 @@
 package org.whoisthebot.service;
 
+import java.time.Duration;
+import java.time.Instant;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
+import java.util.Optional;
 import java.util.Random;
 import java.util.UUID;
 
@@ -9,6 +15,7 @@ import org.whoisthebot.entity.GameRoom;
 import org.whoisthebot.entity.Player;
 import org.whoisthebot.entity.Question;
 import org.whoisthebot.enums.GameStatus;
+import org.whoisthebot.enums.WebSocketMessageType;
 import org.whoisthebot.generator.AliasGenerator;
 import org.whoisthebot.generator.RoomCodeGenerator;
 import org.whoisthebot.repository.GameRoomRepository;
@@ -134,6 +141,8 @@ public class GameRoomService {
 
         gameRoom.setCurrentRound(1);
 
+        gameRoom.setChatEndsAt(Instant.now().plusSeconds(gameRoom.getRoundDuration()));
+
         return gameRoom.getGameStatus();
 
     }
@@ -161,15 +170,71 @@ public class GameRoomService {
         return player.getAlias();
     }
 
-    @Transactional 
+    @Transactional
     public String getQuestionText(String roomCode) {
 
         GameRoom gameRoom = gameRoomRepository.findByRoomCode(roomCode.toUpperCase())
-        .orElseThrow(() -> new NotFoundException("Inget spelrum hittades"));
+                .orElseThrow(() -> new NotFoundException("Inget spelrum hittades"));
 
         String questionText = gameRoom.getQuestion().getText();
 
         return questionText;
+    }
+
+    // Hämtar hur många sekunder som är kvar av chattrundan
+    @Transactional
+    public long getChatRoundSecondsLeft(String roomCode) {
+
+        GameRoom gameRoom = gameRoomRepository.findByRoomCode(roomCode.toUpperCase())
+                .orElseThrow(() -> new NotFoundException("Inget spelrum hittades"));
+
+        // Om spelet inte har startat finns ingen sluttid, och då finns ingen tid kvar
+        if (gameRoom.getChatEndsAt() == null) {
+            return 0;
+        }
+
+        // Beräknar hur många sekunder mellan nuvarande tid och när chatten ska sluta
+        long secondsLeft = Duration.between(Instant.now(), gameRoom.getChatEndsAt()).getSeconds();
+
+        // Om tiden redan har gått blir det negativt, men en nedräkning ska aldrig visa
+        // minus
+        return Math.max(0, secondsLeft);
+    }
+
+    // avslutar chattrundan och byter spelets gamestatus till VOTING
+    // retunerar en lista med alla alias i rummet så man ska kunna rösta på någon.
+    @Transactional
+    public Optional<List<String>> endChat(String roomCode) {
+
+        GameRoom gameRoom = gameRoomRepository.findByRoomCode(roomCode.toUpperCase())
+                .orElseThrow(() -> new NotFoundException("Inget spelrum hittades"));
+
+        // OM spelet inte är i chatt läge, kan man inte avsluta chatten
+        // eftersom frontend kommer skicka CHAT_TIME_END automatiskt när timern går ner kommer 
+        // flera anrop göras till denna metod ungefär samtidigt men bara ett av dem kommer lyckas och de andra ignoreras
+        if (gameRoom.getGameStatus() != GameStatus.CHATTING) {
+            return Optional.empty();
+        }
+
+        // Om det är mer än 1 sekund kvar av chatten, kan man inte avsluta den
+        if (Instant.now().plusSeconds(1).isBefore(gameRoom.getChatEndsAt())) {
+            return Optional.empty();
+        }
+
+        gameRoom.setGameStatus(GameStatus.VOTING);
+
+        List<String> allAliases = new ArrayList<>();
+
+        for (Player player : gameRoom.getPlayers()) {
+            allAliases.add(player.getAlias());
+        }
+
+        // Blandar aliasen för botten skapas alltid sist i listan, listar man ut det kan
+        // man
+        // alltid bara rösta på det sista aliaset som dyker upp
+        Collections.shuffle(allAliases);
+
+        return Optional.of(allAliases);
 
     }
 
@@ -232,7 +297,7 @@ public class GameRoomService {
         }
     }
 
-    // Hämtar alla frågor från databasen och returnerar en slumpmässig fråga 
+    // Hämtar alla frågor från databasen och returnerar en slumpmässig fråga
     private Question chooseRandomQuestion() {
 
         List<Question> allQuestions = questionRepository.listAll();
