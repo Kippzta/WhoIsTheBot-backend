@@ -8,6 +8,7 @@ public enum WebSocketMessageType {
     ALIAS_ASSIGNED,
     CHAT_MESSAGE,
     QUESTION_ASSIGNED,
-    TIMER_STARTED
-    
+    TIMER_STARTED,
+    VOTING_STARTED,
+    CHAT_TIME_END    
 }

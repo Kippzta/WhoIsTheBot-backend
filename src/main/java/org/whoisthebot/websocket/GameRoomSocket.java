@@ -1,5 +1,6 @@
 package org.whoisthebot.websocket;
 
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -130,6 +131,24 @@ public class GameRoomSocket {
                                 WebSocketMessageType.CHAT_MESSAGE, botReply.get());
 
                         sendToRoom(roomCode, botMessage);
+
+                    }
+
+                case CHAT_TIME_END:
+
+                    Optional<List<String>> allAliases = gameRoomService.endChat(roomCode);
+
+                    if (allAliases.isPresent()) {
+
+                        WebSocketMessageDTO<List<String>> aliasesMessage = new WebSocketMessageDTO<>(
+                                WebSocketMessageType.VOTING_STARTED, allAliases.get());
+
+                        WebSocketMessageDTO<GameStatus> statusMessageVoting = new WebSocketMessageDTO<>(
+                                WebSocketMessageType.GAME_STATUS_CHANGED, GameStatus.VOTING);
+
+                                sendToRoom(roomCode, aliasesMessage);
+
+                                sendToRoom(roomCode, statusMessageVoting);
 
                     }
 
