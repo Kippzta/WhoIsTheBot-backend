@@ -12,6 +12,7 @@ import org.whoisthebot.enums.WebSocketMessageType;
 import org.whoisthebot.service.BotService;
 import org.whoisthebot.service.ChatService;
 import org.whoisthebot.service.GameRoomService;
+import org.whoisthebot.service.VoteService;
 
 import io.quarkus.logging.Log;
 import io.quarkus.websockets.next.OnClose;
@@ -35,6 +36,9 @@ public class GameRoomSocket {
 
     @Inject
     BotService botService;
+
+    @Inject
+    VoteService voteService;
 
     // Körs när en spelare ansluter till websocketen
     @OnOpen
@@ -133,6 +137,7 @@ public class GameRoomSocket {
                         sendToRoom(roomCode, botMessage);
 
                     }
+                    break;
 
                 case CHAT_TIME_END:
 
@@ -146,13 +151,23 @@ public class GameRoomSocket {
                         WebSocketMessageDTO<GameStatus> statusMessageVoting = new WebSocketMessageDTO<>(
                                 WebSocketMessageType.GAME_STATUS_CHANGED, GameStatus.VOTING);
 
-                                sendToRoom(roomCode, aliasesMessage);
+                        sendToRoom(roomCode, aliasesMessage);
 
-                                sendToRoom(roomCode, statusMessageVoting);
+                        sendToRoom(roomCode, statusMessageVoting);
 
                     }
-
                     break;
+
+                    case VOTE: 
+
+                    String votedForAlias = (String) webSocketMessageDTO.data();
+
+                    boolean allVoted = voteService.addVote(roomCode, playerId, votedForAlias);
+
+                    if (allVoted) {
+                        // Avsluta seplet
+                        // Visa resultatet av röstningen
+                    }
 
                 default:
                     break;

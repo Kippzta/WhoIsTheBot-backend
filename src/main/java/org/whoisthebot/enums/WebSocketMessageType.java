@@ -10,5 +10,6 @@ public enum WebSocketMessageType {
     QUESTION_ASSIGNED,
     TIMER_STARTED,
     VOTING_STARTED,
-    CHAT_TIME_END    
+    CHAT_TIME_END,
+    VOTE    
 }
