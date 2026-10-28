@@ -2,14 +2,19 @@ package org.whoisthebot.enums;
 
 public enum WebSocketMessageType {
 
-    ROOM_UPDATED,
+    // Skickas från frontend
     START_GAME,
+    CHAT_TIME_END,
+    CHAT_MESSAGE, // åt båda håll
+    VOTE,
+
+    // Skickas från backend
+    ROOM_UPDATED,
     GAME_STATUS_CHANGED,
     ALIAS_ASSIGNED,
-    CHAT_MESSAGE,
     QUESTION_ASSIGNED,
     TIMER_STARTED,
     VOTING_STARTED,
-    CHAT_TIME_END,
-    VOTE    
+    GAME_RESULT    
+
 }

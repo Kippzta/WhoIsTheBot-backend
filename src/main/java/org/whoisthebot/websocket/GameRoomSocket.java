@@ -5,6 +5,7 @@ import java.util.Optional;
 import java.util.UUID;
 
 import org.whoisthebot.DTOs.ChatMessageRespDTO;
+import org.whoisthebot.DTOs.GameResultRespDTO;
 import org.whoisthebot.DTOs.GameRoomDTO;
 import org.whoisthebot.DTOs.WebSocketMessageDTO;
 import org.whoisthebot.enums.GameStatus;
@@ -91,12 +92,16 @@ public class GameRoomSocket {
             UUID playerId = getPlayerId(connection);
 
             switch (webSocketMessageDTO.type()) {
+                // Hosten i frontend skickar START_GAME
                 case START_GAME:
 
+                    // Startar spelet och returnerar den nya statusen på spelet
                     GameStatus gameStatus = gameRoomService.startGame(roomCode, playerId);
 
+                    // Hämtar frågan som ska ställas i chatten
                     String questionText = gameRoomService.getQuestionText(roomCode);
 
+                    // Hämtar hur lång tid som ska chatt rundan ska vara
                     Long timeleft = gameRoomService.getChatRoundSecondsLeft(roomCode);
 
                     WebSocketMessageDTO<String> questionMessage = new WebSocketMessageDTO<>(
@@ -114,13 +119,22 @@ public class GameRoomSocket {
 
                     sendToRoom(roomCode, timeMessage);
 
+                    // statusen skickas sist för att vi byter vi i frontend när denna tas emot
+                    // då har vyn redan allt som behövs till chatten: alias, frågan och timern
                     sendToRoom(roomCode, statusMessage);
                     break;
 
+                // Tar emot chat meddelanden från frontend och skickar dem till alla spelare i
+                // rummet med tillhörande alias om vem som skrev,
+                // och genererar ett svar från botten om det finns.
                 case CHAT_MESSAGE:
 
+                    // Hämtar meddelandet som skickats och castar det till en String
                     String text = (String) webSocketMessageDTO.data();
 
+                    // Skickar meddelandet till chatService som sparar det i databasen och
+                    // returnerar ett objekt med alias och text som ska skickas till alla spelare i
+                    // rummet.
                     ChatMessageRespDTO chatMessageRespDTO = chatService.sendChatMessage(roomCode, playerId, text);
 
                     WebSocketMessageDTO<ChatMessageRespDTO> chatMessage = new WebSocketMessageDTO<>(
@@ -128,6 +142,8 @@ public class GameRoomSocket {
 
                     sendToRoom(roomCode, chatMessage);
 
+                    // Genererar ett svar från botten om det finns och skickar det till alla spelare
+                    // i rummet
                     Optional<ChatMessageRespDTO> botReply = botService.generateBotReply(roomCode);
 
                     if (botReply.isPresent()) {
@@ -139,10 +155,15 @@ public class GameRoomSocket {
                     }
                     break;
 
+                // Frontend skickar detta när timern når 0.
                 case CHAT_TIME_END:
 
+                    // Avslutar chatten och returnerar en lista med allas alias som ska skickas till
+                    // frontend för att starta röstningen
+                    // eller en tom optional
                     Optional<List<String>> allAliases = gameRoomService.endChat(roomCode);
 
+                    // Om det finns något i optionalen hämta och skicka med det i datan
                     if (allAliases.isPresent()) {
 
                         WebSocketMessageDTO<List<String>> aliasesMessage = new WebSocketMessageDTO<>(
@@ -158,16 +179,32 @@ public class GameRoomSocket {
                     }
                     break;
 
-                    case VOTE: 
+                // En spelare röstar på ett alias. vem som röstat hämtas genom playerId i URLn
+                // och skickas med till metoden addVote.
+                // När alla människor har röstat avslutas spelet och resultatet skickas till
+                // alla.
+                case VOTE:
 
                     String votedForAlias = (String) webSocketMessageDTO.data();
 
                     boolean allVoted = voteService.addVote(roomCode, playerId, votedForAlias);
 
                     if (allVoted) {
+
+                        GameResultRespDTO gameResultRespDTO = voteService.getResult(roomCode);
+
+                        WebSocketMessageDTO<GameResultRespDTO> gameResultMessage = new WebSocketMessageDTO<>(
+                                WebSocketMessageType.GAME_RESULT, gameResultRespDTO);
+
+                        sendToRoom(roomCode, gameResultMessage);
+
                         // Avsluta seplet
-                        // Visa resultatet av röstningen
+                        WebSocketMessageDTO<GameStatus> gameFinishedMessage = new WebSocketMessageDTO<>(
+                                WebSocketMessageType.GAME_STATUS_CHANGED, GameStatus.FINISHED);
+
+                        sendToRoom(roomCode, gameFinishedMessage);
                     }
+                    break;
 
                 default:
                     break;
