@@ -28,17 +28,28 @@ public class Player {
     // Skickas aldrig till frontend under spelets gång för då kan man fuska och se vem som är boten
     private boolean isBot = false;
 
+    // null betuder att spelaren inte röstat
+    private String votedForAlias = null;
+    
+    
     // Skapar kopplingen till gameRoom, game_room_id 
     @ManyToOne
     private GameRoom gameRoom;
-
+    
     public Player(String username, GameRoom gameRoom) {
-
+        
         this.username = username;
-
+        
         this.gameRoom = gameRoom;
     }
     
+    public String getVotedForAlias() {
+        return votedForAlias;
+    }
+
+    public void setVotedForAlias(String votedForAlias) {
+        this.votedForAlias = votedForAlias;
+    }
      // Används när en spelare hämtas från databasen
     protected Player() {
     }
