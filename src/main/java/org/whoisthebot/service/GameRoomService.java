@@ -230,7 +230,7 @@ public class GameRoomService {
         return Optional.of(allAliases);
 
     }
-
+    
     // Hjälpmetod för att hämta alla Alias i blandad ordning från spelarna i rummet,
     //  då det behövs även vid sidomladdning inte bara när spelrundan är slut.
     @Transactional
