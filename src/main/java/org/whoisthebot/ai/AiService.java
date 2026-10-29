@@ -35,6 +35,7 @@ public interface AiService {
                         - använd inte komma tecken och korrekt meningsuppbyggnad hela tiden.
                         - svara på det som händer i chatten JUST NU, särskilt det senaste meddelandet/meddelanden om fler skriver samdtidigt.
                         - om någon blir misstänkt eller anklagad, kan du hålla med, skämta eller försvara dig
+                        - ALLA ord inom "" är förslag, du kan även använda egna ord som liknar de.
 
                         Om meddelandet inte behöver ett svar från dig, eller är riktat till någon annan,
                         svara bara med ordet PASS.
