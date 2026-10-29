@@ -210,8 +210,10 @@ public class GameRoomService {
                 .orElseThrow(() -> new NotFoundException("Inget spelrum hittades"));
 
         // OM spelet inte är i chatt läge, kan man inte avsluta chatten
-        // eftersom frontend kommer skicka CHAT_TIME_END automatiskt när timern går ner kommer 
-        // flera anrop göras till denna metod ungefär samtidigt men bara ett av dem kommer lyckas och de andra ignoreras
+        // eftersom frontend kommer skicka CHAT_TIME_END automatiskt när timern går ner
+        // kommer
+        // flera anrop göras till denna metod ungefär samtidigt men bara ett av dem
+        // kommer lyckas och de andra ignoreras
         if (gameRoom.getGameStatus() != GameStatus.CHATTING) {
             return Optional.empty();
         }
@@ -222,6 +224,20 @@ public class GameRoomService {
         }
 
         gameRoom.setGameStatus(GameStatus.VOTING);
+
+        List<String> allAliases = getShuffledAliases(roomCode);
+
+        return Optional.of(allAliases);
+
+    }
+
+    // Hjälpmetod för att hämta alla Alias i blandad ordning från spelarna i rummet,
+    //  då det behövs även vid sidomladdning inte bara när spelrundan är slut.
+    @Transactional
+    public List<String> getShuffledAliases(String roomCode) {
+
+        GameRoom gameRoom = gameRoomRepository.findByRoomCode(roomCode.toUpperCase())
+                .orElseThrow(() -> new NotFoundException("Inget spelrum hittades"));
 
         List<String> allAliases = new ArrayList<>();
 
@@ -234,8 +250,7 @@ public class GameRoomService {
         // alltid bara rösta på det sista aliaset som dyker upp
         Collections.shuffle(allAliases);
 
-        return Optional.of(allAliases);
-
+        return allAliases;
     }
 
     //////////////////////////////////////////

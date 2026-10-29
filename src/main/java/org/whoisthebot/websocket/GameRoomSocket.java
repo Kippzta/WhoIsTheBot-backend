@@ -64,6 +64,54 @@ public class GameRoomSocket {
             WebSocketMessageDTO<GameRoomDTO> message = new WebSocketMessageDTO<>(WebSocketMessageType.ROOM_UPDATED,
                     gameRoomDTO);
 
+            GameStatus gameStatus = gameRoomDTO.gameStatus();
+
+            if (gameStatus != GameStatus.WAITING) {
+                String alias = gameRoomService.getAlias(playerId);
+
+                WebSocketMessageDTO<String> aliasUpdateMessage = new WebSocketMessageDTO<>(
+                        WebSocketMessageType.ALIAS_ASSIGNED, alias);
+                sendToPlayer(aliasUpdateMessage);
+
+                String questionText = gameRoomService.getQuestionText(roomCode);
+
+                WebSocketMessageDTO<String> questionUpdateMessage = new WebSocketMessageDTO<>(
+                        WebSocketMessageType.QUESTION_ASSIGNED, questionText);
+
+                sendToPlayer(questionUpdateMessage);
+            }
+
+            if (gameStatus == GameStatus.CHATTING) {
+
+                Long secondsLeft = gameRoomService.getChatRoundSecondsLeft(roomCode);
+
+                WebSocketMessageDTO<Long> timerUpdateMessage = new WebSocketMessageDTO<>(
+                        WebSocketMessageType.TIMER_STARTED, secondsLeft);
+
+                sendToPlayer(timerUpdateMessage);
+            }
+
+            if (gameStatus == GameStatus.VOTING) {
+                
+                List<String> allAliases = gameRoomService.getShuffledAliases(roomCode);
+
+                WebSocketMessageDTO<List<String>> votingUpdateMessage = new WebSocketMessageDTO<>(
+                    WebSocketMessageType.VOTING_STARTED, allAliases);
+                sendToPlayer(votingUpdateMessage);
+
+            }
+
+            if (gameStatus == GameStatus.FINISHED) {
+
+                GameResultRespDTO gameResultRespDTO = voteService.getResult(roomCode);
+                WebSocketMessageDTO<GameResultRespDTO> resultUpdateMessage = new WebSocketMessageDTO<>(
+                    WebSocketMessageType.GAME_RESULT, gameResultRespDTO
+                );
+
+                sendToPlayer(resultUpdateMessage);
+
+            }
+
             sendToRoom(roomCode, message);
         }
         // Fångar om något går fel och stänger anslutningen
@@ -237,6 +285,11 @@ public class GameRoomSocket {
         connection.broadcast().filter(c -> c.pathParam("roomCode")
                 .equalsIgnoreCase(roomCode))
                 .sendTextAndAwait(message);
+    }
+
+    // Skickar meddelandet till bara den spelaren som är kopplad till anslutningen
+    private <T> void sendToPlayer(WebSocketMessageDTO<T> message) {
+        connection.sendTextAndAwait(message);
     }
 
     // Skickar ett alias till varje spelare i rummet på sin egen anslutning.
