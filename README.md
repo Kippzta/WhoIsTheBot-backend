@@ -119,10 +119,4 @@ Backenden körs på **Render** med Docker (se `Dockerfile`), och databasen på *
 
 Render sätter `PORT` automatiskt. Inställningarna läses av `%prod`-raderna i `application.properties`.
 
-> Databasen byggs om vid varje start (`drop-and-create`), så rum och chattar försvinner när backenden startas om.
-
----
-
-## Användning av generativ AI
-
-Se [frontend-README:n](https://github.com/Kippzta/WhoIsTheBot-frontend#användning-av-generativ-ai).
+> Databasen byggs om vid varje start (`drop-and-create`), allt som sparats i tabellerna försvinner mellan körningarna

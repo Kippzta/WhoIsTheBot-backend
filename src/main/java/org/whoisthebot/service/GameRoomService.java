@@ -235,7 +235,6 @@ public class GameRoomService {
     //  då det behövs även vid sidomladdning inte bara när spelrundan är slut.
     @Transactional
     public List<String> getShuffledAliases(String roomCode) {
-
         GameRoom gameRoom = gameRoomRepository.findByRoomCode(roomCode.toUpperCase())
                 .orElseThrow(() -> new NotFoundException("Inget spelrum hittades"));
 
