@@ -1,81 +1,128 @@
-# whoisthebot-backend
+# Känner du boten? – Backend
 
-This project uses Quarkus, the Supersonic Subatomic Java Framework.
+Backenden till chattspelet **Känner du boten?**, där spelare chattar med varandra och en hemlig AI och röstar på vem de tror är boten.
 
-If you want to learn more about Quarkus, please visit its website: <https://quarkus.io/>.
+**Spela här:** https://whoisthebot-frontend.onrender.com
 
-## Running the application in dev mode
+Frontenden har en mer utförlig beskrivning av hela projektet, finns här: [WhoIsTheBot-frontend](https://github.com/Kippzta/WhoIsTheBot-frontend)
 
-You can run your application in dev mode that enables live coding using:
+---
 
-```shell script
+## Teknik
+
+- Quarkus, Java 21
+- Hibernate ORM med Panache
+- PostgreSQL
+- WebSockets Next
+- Quarkus LangChain4j med OpenAI
+- JUnit och Mockito för tester
+
+---
+
+## Köra projektet lokalt
+
+### Krav
+- Java 21
+- [Docker Desktop](https://www.docker.com/products/docker-desktop/), igång. Quarkus Dev Services startar en PostgreSQL-databas i Docker automatiskt.
+- En OpenAI API-nyckel
+
+### 1. Klona repot
+
+```bash
+git clone https://github.com/Kippzta/WhoIsTheBot-backend.git
+cd WhoIsTheBot-backend
+```
+
+### 2. Lägg in OpenAI-nyckeln
+
+Kopiera exempelfilen och döp den till `.env` och fyll i din riktiga nyckel där:
+
+```bash
+cp .env.example .env
+```
+
+`.env` finns i `.gitignore`, så nyckeln hamnar aldrig på GitHub.
+
+### 3. Starta
+
+```bash
 ./mvnw quarkus:dev
 ```
 
-> **_NOTE:_**  Quarkus now ships with a Dev UI, which is available in dev mode only at <http://localhost:8080/q/dev/>.
+Backenden körs på http://localhost:8080. Databasen skapas automatiskt, och frågorna i `src/main/resources/import.sql` läses in.
 
-## Packaging and running the application
+Starta sedan frontenden enligt [frontend-README:n](https://github.com/Kippzta/WhoIsTheBot-frontend).
 
-The application can be packaged using:
+### Köra testerna
 
-```shell script
-./mvnw package
+```bash
+./mvnw test
 ```
 
-It produces the `quarkus-run.jar` file in the `target/quarkus-app/` directory.
-Be aware that it’s not an _über-jar_ as the dependencies are copied into the `target/quarkus-app/lib/` directory.
+---
 
-The application is now runnable using `java -jar target/quarkus-app/quarkus-run.jar`.
-
-If you want to build an _über-jar_, execute the following command:
-
-```shell script
-./mvnw package -Dquarkus.package.jar.type=uber-jar
-```
-
-The application, packaged as an _über-jar_, is now runnable using `java -jar target/*-runner.jar`.
-
-## Creating a native executable
-
-You can create a native executable using:
-
-```shell script
-./mvnw package -Dnative
-```
-
-Or, if you don't have GraalVM installed, you can run the native executable build in a container using:
-
-```shell script
-./mvnw package -Dnative -Dquarkus.native.container-build=true
-```
-
-You can then execute your native executable with: `./target/whoisthebot-backend-1.0.0-SNAPSHOT-runner`
-
-If you want to learn more about building native executables, please consult <https://quarkus.io/guides/maven-tooling>.
-
-## Related Guides
-
-- Hibernate Validator ([guide](https://quarkus.io/guides/validation)): Bean validation using Hibernate Validator and Jakarta Validation annotations
-- WebSockets Next ([guide](https://quarkus.io/guides/websockets-next-reference)): Implementation of the WebSocket API with enhanced efficiency and usability
-- SmallRye OpenAPI ([guide](https://quarkus.io/guides/openapi-swaggerui)): Generate OpenAPI schemas and serve Swagger UI for REST API documentation
-- REST Jackson ([guide](https://quarkus.io/guides/rest#json-serialisation)): Jackson serialization support for Quarkus REST. This extension is not compatible with the quarkus-resteasy extension, or any of the extensions that depend on it
-- Hibernate ORM with Panache ([guide](https://quarkus.io/guides/hibernate-orm-panache)): Simplified JPA/Hibernate data access layer with active record and repository patterns
-- JDBC Driver - PostgreSQL ([guide](https://quarkus.io/guides/datasource)): Connect to the PostgreSQL database via JDBC
-
-## Provided Code
-
-### Hibernate ORM
-
-Create your first JPA entity
-
-[Related guide section...](https://quarkus.io/guides/hibernate-orm)
-
-
-[Related Hibernate with Panache section...](https://quarkus.io/guides/hibernate-orm-panache)
-
+## API
 
 ### REST
 
-Easily start your REST Web Services
+| Metod | Adress | Body | Svar |
+|---|---|---|---|
+| POST | `/api/rooms/create` | `{ "username": "Erik" }` | `201`, spelarens `playerId` och rummet |
+| POST | `/api/rooms/join` | `{ "username": "Anna", "roomCode": "ABCDE" }` | `201`, spelarens `playerId` och rummet |
 
-[Related guide section...](https://quarkus.io/guides/getting-started-reactive#reactive-jax-rs-resources)
+### WebSocket
+
+```
+/ws/rooms/{roomCode}/{playerId}
+```
+
+Vid anslutning läser backenden rumskoden och `playerId` från adressen, och kontrollerar att spelaren finns och tillhör rummet.
+Annars stängs anslutningen. Alla meddelanden skickas som `{ "type": ..., "data": ... }`. Se tabellen över meddelandetyper i [frontend-README:n](https://github.com/Kippzta/WhoIsTheBot-frontend).
+
+---
+
+## Struktur
+
+```
+src/main/java/org/whoisthebot/
+├── ai/           BotAiService: prompten till OpenAI
+├── DTOs/         det som skickas till och från frontenden
+├── entity/       GameRoom, Player, ChatMessage, Question
+├── enums/        GameStatus, WebSocketMessageType
+├── generator/    RoomCodeGenerator, AliasGenerator
+├── repository/   Panache-repositories
+├── resource/     REST-endpoints
+├── service/      GameRoomService, ChatService, BotService, VoteService
+└── websocket/    GameRoomSocket
+```
+
+| Service | Ansvar |
+|---|---|
+| `GameRoomService` | skapa, gå med, starta spelet, avsluta chatten |
+| `ChatService` | kontrollera och spara chattmeddelanden |
+| `BotService` | låta boten svara utifrån de senaste meddelandena |
+| `VoteService` | ta emot röster och räkna ut resultatet |
+
+---
+
+## Drift
+
+Backenden körs på **Render** med Docker (se `Dockerfile`), och databasen på **Neon**. Följande miljövariabler sätts i Render:
+
+| Variabel | Beskrivning |
+|---|---|
+| `DB_URL` | JDBC-adressen till databasen på Neon |
+| `DB_USERNAME` | databasens användarnamn |
+| `DB_PASSWORD` | databasens lösenord |
+| `FRONTEND_URL` | frontendens adress, för CORS |
+| `OPENAI_API_KEY` | nyckeln till OpenAI |
+
+Render sätter `PORT` automatiskt. Inställningarna läses av `%prod`-raderna i `application.properties`.
+
+> Databasen byggs om vid varje start (`drop-and-create`), så rum och chattar försvinner när backenden startas om.
+
+---
+
+## Användning av generativ AI
+
+Se [frontend-README:n](https://github.com/Kippzta/WhoIsTheBot-frontend#användning-av-generativ-ai).
